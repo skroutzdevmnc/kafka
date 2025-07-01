@@ -9,7 +9,7 @@ import { defaultKafkaConfig } from './config/kafkaConfig.js';
 const HTTP_PORT = 3000;
 const WS_PORT = 8080;
 
-// Simple HTTP server for static files
+// Simple HTTP server for static files (React build)
 const server = createServer((req, res) => {
   const filePath = req.url === '/' ? '/index.html' : req.url;
   
@@ -17,13 +17,21 @@ const server = createServer((req, res) => {
     let contentType = 'text/html';
     if (filePath?.endsWith('.css')) contentType = 'text/css';
     if (filePath?.endsWith('.js')) contentType = 'application/javascript';
+    if (filePath?.endsWith('.jsx')) contentType = 'application/javascript';
     
     const content = readFileSync(join(process.cwd(), 'static', filePath!));
     res.writeHead(200, { 'Content-Type': contentType });
     res.end(content);
   } catch {
-    res.writeHead(404);
-    res.end('Not Found');
+    // Fallback to index.html for SPA routing
+    try {
+      const content = readFileSync(join(process.cwd(), 'static', 'index.html'));
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(content);
+    } catch {
+      res.writeHead(404);
+      res.end('Not Found');
+    }
   }
 });
 
@@ -35,6 +43,8 @@ const messageHandler = new WebSocketMessageHandler(monitor, wsServer);
 // Start HTTP server
 server.listen(HTTP_PORT, () => {
   console.log(`🌐 HTTP Server: http://localhost:${HTTP_PORT}`);
+  console.log(`🔌 WebSocket Server: ws://localhost:${WS_PORT}`);
+  console.log(`📱 React Dev Server: http://localhost:3001 (run 'npm run client')`);
 });
 
 // Start monitoring
